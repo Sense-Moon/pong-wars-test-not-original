@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+
+<style>
+html{
+	height:100%;
+}
+
+body {
+    background: linear-gradient(to bottom, #F1F6F4 60%, #114C5A 100%);
+}
+
+
+
+#container {
+	width;90%;
+	text-align:center
+    max-width: 600px;
+}
+
+canvas{
+	display:block;
+	border-radius:4px;
+	overflow:hidden;
+	width:100%;
+	margin-top:50px;
+	box-shadow:0 0 2 0 px rgba(0,0,0,0.2);
+	margin-bottom:50px
+}
+
+#score{
+	font-family:monospace;
+	margin-top:30px;
+	font-size:16px;
+	padding-left:20px;
+	color:#172b36;
+}
+
+#made{
+	text-align:center;
+	line-height:1.5;
+	font-family:monospace;
+	margin-top:auto;
+	margin-bottom:20px;
+	font-size:10px;
+}
+
+#madea{
+	color:#172b36;
+}
+
+#settings {
+    text-align: center;
+    width: 100%
+    font-size:18px;
+}
+label{
+	display:inline-block;
+	width:220px;
+}
+button{
+	text-align:center;
+	vertical-align:middle;
+	text-decoration:none;
+	width:180px;
+	margin-bottom:20px;
+	height:60px;
+	font-weight:bold;
+	border-bottom:7px solid #000;
+	background:#F1F6F4;
+	color:#000;
+	font-size:22px
+}
+#toggleAll{
+	text-align:center;
+	vertical-align:middle;
+	text-decoration:none;
+	width:240px;
+	margin-bottom:20px;
+	height:60px;
+	font-weight:bold;
+	font-size:22px
+}
+</style>
+
+</head>
+
+<body>
+<div id="container">
+
+	<canvas id="pongCanvas"width="600"height="600"></canvas>
+
+</div>
+
+	<div id="settings">
+		<p>特定のボールが消えちゃうときは、ドットの大きさかボールのサイズ弄って（）</p>
+		<br>
+
+		<button id="applySettings">設定適用</button>
+		<br>
+		<label for="numSQUARE_SIZE">ドットの大きさ:<span id="numSQUARE_SIZEValue"></span></label>
+		<input type="range" id="numSQUARE_SIZE" name="numSQUARE_SIZE" min="5" max="25" value="25">
+		<br>
+		<br>
+		<button id="toggleAll">ボール全部オンオフ</button>
+		<br>
+		<div id="ballSettings"></div>
+
+
+	  <br>
+	  <br>
+	  <br>
+	  
+	  <p id="modified">
+	    modified by Sense-Moon
+	  </p>
+	  <p id="original">
+	    original made by <a href="https://koenvangilst.nl">Koen van Gilst</a> | source on
+	    <a href="https://github.com/vnglst/pong-wars">github</a>
+	  </p>
+	  <p id="license">
+	    This software is licensed under the MIT License. See the LICENSE file for details.
+	  </p>
+
+</div>
+</body>
+
+<script>
+    // Source palette: https://twitter.com/AlexCristache/status/1738610343499157872
+    // Idea for Pong wars: https://twitter.com/nicolasdnl/status/1749715070928433161
+
+let colorPalette={
+	ArcticPowder:"#F1F6F4",
+	MysticMint:"#D9E8E3",
+	Forsythia:"#FFC801",
+	DeepSaffron:"#FF9932",
+	NocturnalExpedition:"#114C5A",
+	OceanicNoir:"#386d8a",
+	Coral:"#FF7F50",
+	Tomato:"#FF6347",
+	Gold:"#FFD700",
+	LimeGreen:"#32CD32",
+	DeepSkyBlue:"#00BFFF",
+	DarkOrchid:"#9932CC",
+	Silver:"#C0C0C0",
+	RosyBrown:"#BC8F8F",
+	MediumPurple:"#9370DB",
+	LightSeaGreen:"#20B2AA",
+};
+
+// ボール設定用のコンテナを取得
+let ballSettingsContainer = document.getElementById('ballSettings');
+
+// 16個のボール設定を生成
+for (let i = 1; i <= 16; i++) {
+    let ballSettingsDiv = document.createElement('div');
+    ballSettingsDiv.id = 'ball' + i + 'Settings';
+	ballSettingsDiv.style.display = 'flex';
+	ballSettingsDiv.style.alignItems = 'center'; 
+	ballSettingsDiv.style.fontSize = '18px';
+
+
+    let ballColor = Object.values(colorPalette)[i - 1];
+
+    ballSettingsDiv.style.backgroundColor = ballColor;
+
+    let ballSizeLabel = document.createElement('label');
+    ballSizeLabel.for = 'ball' + i + 'Size';
+    ballSizeLabel.textContent = i + 'の大きさ:';
+    let ballSizeValue = document.createElement('span');
+    ballSizeValue.id = 'ball' + i + 'SizeValue';
+    let ballSizeSlider = document.createElement('input');
+    ballSizeSlider.type = 'range';
+    ballSizeSlider.id = 'ball' + i + 'Size';
+    ballSizeSlider.name = 'ball' + i + 'Size';
+    ballSizeSlider.min = '1';
+    ballSizeSlider.max = '50';
+    ballSizeSlider.value = '10';
+    ballSizeSlider.oninput = function() {
+        document.getElementById(this.id + 'Value').textContent = this.value;
+    };
+    ballSizeValue.textContent = ballSizeSlider.value;
+
+    let ballSpeedLabel = document.createElement('label');
+    ballSpeedLabel.for = 'ball' + i + 'Speed';
+    ballSpeedLabel.textContent =  i + 'のスピード:';
+    let ballSpeedValue = document.createElement('span');
+    ballSpeedValue.id = 'ball' + i + 'SpeedValue';
+    let ballSpeedSlider = document.createElement('input');
+    ballSpeedSlider.type = 'range';
+    ballSpeedSlider.id = 'ball' + i + 'Speed';
+    ballSpeedSlider.name = 'ball' + i + 'Speed';
+    ballSpeedSlider.min = '0.5';
+    ballSpeedSlider.max = '9';
+    ballSpeedSlider.step = '0.5';
+    ballSpeedSlider.value = '1.0';
+	ballSpeedSlider.oninput = function() {
+	    document.getElementById(this.id + 'Value').textContent = parseFloat(this.value).toFixed(1);
+	};
+    ballSpeedValue.textContent = parseFloat(ballSpeedSlider.value).toFixed(1);;
+
+    let ballUseLabel = document.createElement('label');
+    ballUseLabel.for = 'ball' + i + 'Use';
+    ballUseLabel.textContent = '使用:';
+    let ballUseCheckbox = document.createElement('input');
+    ballUseCheckbox.type = 'checkbox';
+    ballUseCheckbox.id = 'ball' + i + 'Use';
+    ballUseCheckbox.name = 'ball' + i + 'Use';
+    ballUseCheckbox.checked = false;
+
+    ballSettingsDiv.appendChild(ballSizeLabel);
+    ballSettingsDiv.appendChild(ballSizeValue);
+    ballSettingsDiv.appendChild(ballSizeSlider);
+    ballSettingsDiv.appendChild(ballSpeedLabel);
+    ballSettingsDiv.appendChild(ballSpeedValue);
+    ballSettingsDiv.appendChild(ballSpeedSlider);
+    ballSettingsDiv.appendChild(ballUseLabel);
+    ballSettingsDiv.appendChild(ballUseCheckbox);
+
+    ballSettingsContainer.appendChild(ballSettingsDiv);
+}
+
+document.getElementById('toggleAll').addEventListener('click', function() {
+    for (let i = 1; i <= 16; i++) {
+        let checkbox = document.getElementById('ball' + i + 'Use');
+        checkbox.checked = !checkbox.checked;
+    }
+});
+
+
+
+let canvas=document.getElementById("pongCanvas");
+let ctx=canvas.getContext("2d");
+let scoreElement=document.getElementById("score");
+
+let MIN_SPEED=0;
+let MAX_SPEED=10;
+let numBalls = 0;
+for (let i = 1; i <= 16; i++) {
+    if (document.getElementById('ball' + i + 'Use').checked) {
+        numBalls++;
+    }
+}
+
+
+let SQUARE_SIZE=25;
+
+while(canvas.width%SQUARE_SIZE!==0){
+	SQUARE_SIZE--;
+}
+
+let numSquaresX=Math.floor(canvas.width/SQUARE_SIZE);
+let numSquaresY=Math.floor(canvas.height/SQUARE_SIZE);
+
+let squares = new Array(numSquaresX).fill().map(() => new Array(numSquaresY).fill(null));
+
+
+function drawSquares(){
+	for(let i=0;i<numSquaresX;i++){
+		for(let j=0;j<numSquaresY;j++){
+			ctx.fillStyle=squares[i][j];
+			ctx.fillRect(
+			i*SQUARE_SIZE,
+			j*SQUARE_SIZE,
+			SQUARE_SIZE,
+			SQUARE_SIZE
+			);
+		}
+	}
+}
+
+let balls=[];
+
+let iteration=0;
+
+function drawBall(ball){
+	ctx.beginPath();
+	ctx.arc(ball.x,ball.y,ball.radius,0,Math.PI*2,false);
+	ctx.fillStyle=ball.ballColor;
+	ctx.fill();
+	ctx.strokeStyle='black';
+	ctx.stroke();
+	ctx.closePath();
+}
+
+function checkSquareCollision(ball){
+    if (!collisionEnabled) {
+        return;
+    }
+    // 0から2πまでの範囲を32等分
+    for(let angle=0;angle<Math.PI*2;angle+=Math.PI/16){
+        let checkX=ball.x+Math.cos(angle)*ball.radius;
+        let checkY=ball.y+Math.sin(angle)*ball.radius;
+
+        let i=Math.floor(checkX/SQUARE_SIZE);
+        let j=Math.floor(checkY/SQUARE_SIZE);
+
+        if(i>=0&&i<numSquaresX&&j>=0&&j<numSquaresY){
+            if(squares[i][j]!==ball.reverseColor){
+                squares[i][j]=ball.reverseColor;
+                if(Math.abs(Math.cos(angle))>Math.abs(Math.sin(angle))){
+                    ball.dx=-ball.dx;
+                }else{
+                    ball.dy=-ball.dy;
+                }
+            }
+        }
+    }
+}
+
+
+function checkBoundaryCollision(ball){
+    if(ball.x + ball.dx - ball.radius < 0){
+        ball.dx = Math.abs(ball.dx);
+        ball.dx += (Math.random() - 0.5) / 10; // ランダムな変化を追加
+    } else if(ball.x + ball.dx + ball.radius > canvas.width){
+        ball.dx = -Math.abs(ball.dx);
+        ball.dx += (Math.random() - 0.5) / 10; // ランダムな変化を追加
+    } else {
+        ball.x += ball.dx;
+    }
+
+    if(ball.y + ball.dy - ball.radius < 0){
+        ball.dy = Math.abs(ball.dy);
+        ball.dy += (Math.random() - 0.5) / 10; // ランダムな変化を追加
+    } else if(ball.y + ball.dy + ball.radius > canvas.height){
+        ball.dy = -Math.abs(ball.dy);
+        ball.dy += (Math.random() - 0.5) / 10; // ランダムな変化を追加
+    } else {
+        ball.y += ball.dy;
+    }
+}
+
+
+
+function addRandomness(ball, i){
+    ball.dx += (Math.random() - 0.5) / 20;
+    ball.dy += (Math.random() - 0.5) / 20;
+
+    let MAX_SPEED = parseFloat(document.getElementById('ball' + (i+1) + 'Speed').value);
+    let MIN_SPEED = 0.5;
+    ball.dx = Math.min(Math.max(ball.dx, -MAX_SPEED), MAX_SPEED);
+    ball.dy = Math.min(Math.max(ball.dy, -MAX_SPEED), MAX_SPEED);
+
+    if (Math.abs(ball.dx) < MIN_SPEED)
+        ball.dx = ball.dx > 0 ? MIN_SPEED : -MIN_SPEED;
+    if (Math.abs(ball.dy) < MIN_SPEED)
+        ball.dy = ball.dy > 0 ? MIN_SPEED : -MIN_SPEED;
+}
+
+
+let isDrawing=false;
+
+function draw(){
+	if(!isDrawing)return;
+
+	ctx.clearRect(0,0,canvas.width,canvas.height);
+	drawSquares();
+
+	balls.forEach((ball, index) => {
+	    drawBall(ball);
+	    checkSquareCollision(ball);
+	    checkBoundaryCollision(ball);
+	    ball.x += ball.dx;
+	    ball.y += ball.dy;
+	    addRandomness(ball, index);
+	});
+	
+	
+	function checkBallCollision() {
+	    for(let i = 0; i < balls.length; i++) {
+	        for(let j = i + 1; j < balls.length; j++) {
+	            let dx = balls[i].x - balls[j].x;
+	            let dy = balls[i].y - balls[j].y;
+	            let distance = Math.sqrt(dx * dx + dy * dy);
+
+	            if (distance < balls[i].radius + balls[j].radius) {
+	                // ボール同士が接触した場合、ボールを反発させる
+	                let angle = Math.atan2(dy, dx);
+	                let sin = Math.sin(angle);
+	                let cos = Math.cos(angle);
+
+	                // ボールiの位置を原点に移動
+	                let pos0 = {x: 0, y: 0};
+	                let pos1 = rotate(dx, dy, sin, cos, true);
+
+	                // ボールiとボールjの速度を回転
+	                let vel0 = rotate(balls[i].dx, balls[i].dy, sin, cos, true);
+	                let vel1 = rotate(balls[j].dx, balls[j].dy, sin, cos, true);
+
+	                // 衝突の解決
+					let vxTotal = vel0.x - vel1.x;
+					vel0.x = ((balls[i].radius - balls[j].radius) * vel0.x + 2 * balls[j].radius * vel1.x) / (balls[i].radius + balls[j].radius);
+					vel1.x = vxTotal + vel0.x;
+
+					// 反発係数を設定
+					let restitution = (balls[i].radius + balls[j].radius) * (balls[i].radius + balls[j].radius); // この値を調整して反発の強さを制御
+
+					// 速度に反発係数を適用
+					vel0.x *= restitution;
+					vel1.x *= restitution;
+
+
+					// ボールの位置を更新
+					let separationDistance = balls[i].radius + balls[j].radius * distance * (balls[i].radius + balls[j].radius)*(balls[i].radius + balls[j].radius);
+					let separationVector = {x: separationDistance * Math.cos(angle), y: separationDistance * Math.sin(angle)};
+					pos0.x += vel0.x - separationVector.x / 2;
+					pos1.x += vel1.x + separationVector.x / 2;
+
+					// ボールの位置と速度を元に戻す
+					let pos0F = rotate(pos0.x, pos0.y, sin, cos, false);
+					let pos1F = rotate(pos1.x, pos1.y, sin, cos, false);
+
+					balls[j].x = balls[i].x + pos1F.x;
+					balls[j].y = balls[i].y + pos1F.y;
+					balls[i].x = balls[i].x + pos0F.x;
+					balls[i].y = balls[i].y + pos0F.y;
+
+
+
+	                let vel0F = rotate(vel0.x, vel0.y, sin, cos, false);
+	                let vel1F = rotate(vel1.x, vel1.y, sin, cos, false);
+
+	                balls[i].dx = vel0F.x;
+	                balls[i].dy = vel0F.y;
+	                balls[j].dx = vel1F.x;
+	                balls[j].dy = vel1F.y;
+	            }
+	        }
+	    }
+	}
+
+	function rotate(x, y, sin, cos, reverse) {
+	    return {
+	        x: (reverse) ? (x * cos + y * sin) : (x * cos - y * sin),
+	        y: (reverse) ? (y * cos - x * sin) : (y * cos + x * sin)
+	    };
+	}
+
+
+	requestAnimationFrame(draw);
+	
+}
+
+let collisionEnabled = false;
+
+document.getElementById('applySettings').addEventListener('click', function() {
+    SQUARE_SIZE = parseInt(document.getElementById('numSQUARE_SIZE').value);
+    canvas.width = Math.floor(canvas.width / SQUARE_SIZE) * SQUARE_SIZE;
+    canvas.height = Math.floor(canvas.height / SQUARE_SIZE) * SQUARE_SIZE;
+    numSquaresX = Math.floor(canvas.width / SQUARE_SIZE);
+    numSquaresY = Math.floor(canvas.height / SQUARE_SIZE);
+    squares = new Array(numSquaresX).fill().map(() => new Array(numSquaresY).fill(null));
+
+    balls.length = 0;
+    
+
+
+    for (let i = 1; i <= 16; i++) {
+        if (document.getElementById('ball' + i + 'Use').checked) {
+            let ballSize = document.getElementById('ball' + i + 'Size').value;
+            let MAX_SPEED = document.getElementById('ball' + i + 'Speed').value;
+            let numBalls = document.querySelectorAll('input[id^="ball"][id$="Use"]:checked').length;
+
+            let initialXSpacing = Math.floor(canvas.width / numBalls / SQUARE_SIZE) * SQUARE_SIZE ;
+            let initialX = initialXSpacing * (balls.length + 1) + initialXSpacing / 2;
+            let initialY = (canvas.height / 2);
+            let initialDx = MAX_SPEED;
+            let initialDy = MAX_SPEED;
+            let ballColor = Object.values(colorPalette)[i - 1];
+
+            balls.push({
+                x: initialX,
+                y: initialY,
+                dx: initialDx,
+                dy: initialDy,
+                MAX_SPEED: MAX_SPEED,
+                radius: ballSize,
+                reverseColor: ballColor,
+                ballColor: ballColor,
+            });
+
+        }
+    }
+
+    for (let i = 0; i < balls.length; i++) {
+        let start = Math.floor((i * numSquaresX) / balls.length);
+        let end = i === balls.length - 1 ? numSquaresX : ((i + 1) * numSquaresX) / balls.length;
+
+        for (let j = start; j < end; j++) {
+            for (let k = 0; k < numSquaresY; k++) {
+                squares[j][k] = balls[i].ballColor;
+            }
+        }
+        balls[i].x = 10 +  Math.floor((start + (end - start) / 2)) * SQUARE_SIZE;
+    }
+
+    collisionEnabled = false;
+    setTimeout(() => {
+        collisionEnabled = true;
+    }, 10);
+
+    isDrawing = false;
+    requestAnimationFrame(() => {
+        isDrawing = true;
+        draw();
+    });
+});
+
+
+
+isDrawing=true;
+requestAnimationFrame(draw);
+
+
+document.getElementById('numSQUARE_SIZE').addEventListener('input',function(){
+	document.getElementById('numSQUARE_SIZEValue').textContent=this.value;
+});
+//初期値を設定
+document.getElementById('numSQUARE_SIZEValue').textContent=document.getElementById('numSQUARE_SIZE').value;
+
+
+</script>
+</html>
